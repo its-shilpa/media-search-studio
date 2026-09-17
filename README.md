@@ -1,16 +1,76 @@
-# React + Vite
+# MediaSearch
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> A modern media discovery platform for searching, exploring, downloading, and saving high-quality photos, videos, and GIFs from multiple media sources.
 
-Currently, two official plugins are available:
+![MediaSearch Preview](./public/preview.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Overview
 
-## React Compiler
+MediaSearch is a modern, responsive media discovery application built with React and Redux.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The application brings photos, videos, and GIFs from multiple external media APIs into a single, unified search experience. Users can search for visual content, browse results with infinite scrolling, filter results by media type and supported attributes, download media, and save their favorite content to a personal collection.
 
-## Expanding the Oxlint configuration
+The UI is designed with a dark, premium aesthetic focused on keeping the media itself at the center of the experience.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+---
+
+## 🚀 Features
+
+### 🔎 Smart Media Search
+
+- Search across multiple media sources
+- Debounced search-as-you-type
+- Search automatically triggers after approximately 500ms of inactivity
+- Search suggestions / trending searches
+- Clear search functionality
+- Loading and error states
+- Search result count and current query display
+
+### 🖼️ Photos
+
+- Search high-quality photos
+- Photo results from Unsplash and Pexels
+- Responsive masonry-style media grid
+- Orientation filtering
+- Color filtering where supported
+- Save photos to collection
+- Direct media download
+
+### 🎥 Videos
+
+- Search videos from Pexels
+- Dedicated video result cards
+- Video indicators
+- Responsive video presentation
+- Save videos to collection
+- Direct download support
+
+### 🎞️ GIFs
+
+- GIF search and discovery
+- Giphy integration
+- Dedicated GIF indicators
+- Responsive GIF cards
+- Save GIFs to collection
+- Download support where available
+
+### ♾️ Infinite Scrolling
+
+Results load progressively as the user scrolls.
+
+Instead of requiring users to manually navigate through pages:
+
+```text
+Search
+   ↓
+Initial Results
+   ↓
+Scroll
+   ↓
+Load More
+   ↓
+Scroll
+   ↓
+Load More
+   ↓
+...

@@ -17,6 +17,7 @@ const SearchBar = () => {
     const [isFocused, setIsFocused] = useState(false)
     const containerRef = useRef(null)
     const dispatch = useDispatch()
+    
 
     // 1. Debounced search-as-you-type (~500ms)
     useEffect(() => {

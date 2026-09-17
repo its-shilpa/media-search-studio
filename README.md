@@ -74,3 +74,34 @@ Scroll
 Load More
    ↓
 ...
+
+## ✨ All Features
+
+- 🔎 Debounced media search
+- 🖼️ Photos — Unsplash & Pexels
+- 🎥 Videos — Pexels
+- 🎞️ GIFs — Giphy
+- ♾️ Infinite scrolling
+- 🎛️ Media filters
+- 💾 Save to Collection
+- ⬇️ Download media
+- ⚡ Search result caching
+- 📱 Fully responsive modern UI
+
+## 🛠️ Tech Stack
+
+- React
+- Redux
+- Vite
+- JavaScript
+- Unsplash API
+- Pexels API
+- Giphy API
+
+## ⚙️ Setup
+
+```bash
+git clone https://github.com/YOUR_USERNAME/media-search-studio.git
+cd media-search-studio
+npm install
+npm run dev

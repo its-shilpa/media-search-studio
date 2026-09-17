@@ -7,6 +7,16 @@ const CollectionCard = ({ item }) => {
     const videoRef = useRef(null)
     const [isHovered, setIsHovered] = useState(false)
 
+    const [isDownloading, setIsDownloading] = useState(false)
+
+    const ext = item.type === 'video' ? 'mp4' : item.type === 'gif' ? 'gif' : 'jpg'
+    const cleanTitle = (item.title || item.type || 'media')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 30) || 'media-download'
+    const filename = `${cleanTitle}.${ext}`
+
     const handleMouseEnter = () => {
         setIsHovered(true)
         if (item.type === 'video' && videoRef.current) {
@@ -27,6 +37,37 @@ const CollectionCard = ({ item }) => {
         e.stopPropagation()
         dispatch(removeCollection(item.id))
         dispatch(removeToast())
+    }
+
+    const handleDownload = async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (isDownloading) return
+
+        setIsDownloading(true)
+        try {
+            const res = await fetch(item.src)
+            const blob = await res.blob()
+            const blobUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = blobUrl
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            window.URL.revokeObjectURL(blobUrl)
+        } catch {
+            // Fallback: trigger direct link if blob fetch fails
+            const a = document.createElement('a')
+            a.href = item.src
+            a.download = filename
+            a.target = '_blank'
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+        } finally {
+            setIsDownloading(false)
+        }
     }
 
     const displayTitle = item.title || (item.type === 'video' ? 'Untitled Video' : item.type === 'gif' ? 'Untitled GIF' : 'Untitled Photo')
@@ -110,16 +151,45 @@ const CollectionCard = ({ item }) => {
                         <line x1="10" y1="14" x2="21" y2="3"></line>
                     </svg>
                 </div>
+            </a>
 
-                {/* Bottom Scrim with Meta and Remove Action */}
-                <div className="absolute inset-x-0 bottom-0 pt-16 pb-3.5 px-4 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent flex items-end justify-between gap-3">
-                    <h3 
-                        className="text-xs sm:text-sm font-medium text-white/95 capitalize truncate flex-1 drop-shadow-sm"
-                        title={displayTitle}
+            {/* Bottom Scrim with Meta and Actions */}
+            <div className="absolute inset-x-0 bottom-0 pt-16 pb-3 px-3.5 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent flex items-end justify-between gap-2 pointer-events-none">
+                <h3 
+                    className="text-xs sm:text-sm font-medium text-white/95 capitalize truncate flex-1 drop-shadow-sm pointer-events-auto"
+                    title={displayTitle}
+                >
+                    {displayTitle}
+                </h3>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1.5 flex-shrink-0 pointer-events-auto">
+                    {/* Direct Download Link */}
+                    <a
+                        href={item.src}
+                        download={filename}
+                        onClick={handleDownload}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Download ${item.type}`}
+                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold rounded-lg shadow-sm border border-white/15 backdrop-blur-md transition-all duration-150 flex items-center gap-1 cursor-pointer"
                     >
-                        {displayTitle}
-                    </h3>
+                        {isDownloading ? (
+                            <svg className="w-3.5 h-3.5 animate-spin text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                        ) : (
+                            <svg className="w-3.5 h-3.5 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        )}
+                        <span className="hidden sm:inline">Download</span>
+                    </a>
 
+                    {/* Remove from collection */}
                     <button 
                         type="button"
                         onClick={removeFromCollection}
@@ -133,7 +203,7 @@ const CollectionCard = ({ item }) => {
                         <span>Remove</span>
                     </button>
                 </div>
-            </a>
+            </div>
         </div>
     )
 }

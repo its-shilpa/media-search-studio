@@ -52,7 +52,7 @@ const mapVideos = (videos = []) =>
 
 const ResultGrid = () => {
   const dispatch = useDispatch()
-  const { query, activeTab, results, loading, loadingMore, error, page, hasMore } =
+  const { query, activeTab, results, loading, loadingMore, error, page, hasMore, cache } =
     useSelector((store) => store.search)
 
   const sentinelRef = useRef(null)
@@ -104,6 +104,13 @@ const ResultGrid = () => {
   // first page — runs whenever query or tab changes
   useEffect(() => {
     if (!query) return
+
+    // If query+tab was already restored from Redux cache, avoid network call
+    const cacheKey = `${(query || '').trim().toLowerCase()}__${activeTab}`
+    if (cache && cache[cacheKey]) {
+      return
+    }
+
     let isCurrent = true
 
     const getData = async () => {

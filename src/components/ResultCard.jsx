@@ -27,7 +27,7 @@ const ResultCard = ({ item }) => {
         className="block w-full h-full cursor-pointer relative"
         title={`View on original platform: ${displayTitle}`}
       >
-        {item.type === 'photo' ? (
+        {item.type === 'photo' || item.type === 'gif' ? (
           <img 
             className="h-full w-full object-center object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
             src={item.src} 
@@ -54,6 +54,17 @@ const ResultCard = ({ item }) => {
               <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
             <span>VIDEO</span>
+          </div>
+        )}
+
+        {item.type === 'gif' && (
+          <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-semibold tracking-wider text-white/90 border border-white/10 flex items-center gap-1.5 shadow-sm">
+            <svg className="w-3 h-3 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            <span>GIF</span>
           </div>
         )}
 

@@ -1,117 +1,164 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchPhotos, fetchVideos } from '../api/mediaApi'
-import { setLoading, setResults, setError } from '../redux/features/searchSlice'
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
+import { AlertTriangle, SearchX, Loader2 } from 'lucide-react'
+import { fetchPhotos, fetchVideos, fetchGifs } from '../api/mediaApi'
+import {
+  setLoading, setResults, appendResults,
+  setLoadingMore, incrementPage, setError
+} from '../redux/features/searchSlice'
 import ResultCard from './ResultCard'
 
+const PER_PAGE = 20
+const GRID_CLASSES = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
+
 const ResultGrid = () => {
-    const dispatch = useDispatch()
-    const { query, activeTab, results, loading, error } = useSelector((store) => store.search)
+  const dispatch = useDispatch()
+  const { query, activeTab, results, loading, loadingMore, error, page, hasMore } =
+    useSelector((store) => store.search)
 
-    useEffect(() => {
-        if (!query) return
-        const getData = async () => {
-            try {
-                dispatch(setLoading())
-                let data = []
+  const sentinelRef = useRef(null)
+  const observerRef = useRef(null)
 
-                if (activeTab === 'photos') {
-                    const response = await fetchPhotos(query)
-                    data = (response.results || []).map((item) => ({
-                        id: item.id,
-                        type: 'photo',
-                        title: item.alt_description || item.description || 'Photo',
-                        thumbnail: item.urls.small,
-                        src: item.urls.regular || item.urls.full,
-                        url: item.links.html
-                    }))
-                }
-                if (activeTab === 'videos') {
-                    const response = await fetchVideos(query)
-                    data = (response.videos || []).map((item) => ({
-                        id: item.id,
-                        type: 'video',
-                        title: item.user?.name ? `Video by ${item.user.name}` : 'Video',
-                        thumbnail: item.image,
-                        src: item.video_files?.[0]?.link || '',
-                        url: item.url
-                    }))
-                }
-
-                dispatch(setResults(data))
-            } catch (err) {
-                dispatch(setError(err.message || 'Failed to fetch media'))
-            }
-        }
-
-        getData()
-    }, [query, activeTab, dispatch])
-
-    // 1. Loading Skeleton State
-    if (loading) {
-        return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                    {Array.from({ length: 8 }).map((_, idx) => (
-                        <div 
-                            key={idx} 
-                            className="aspect-[4/3] w-full rounded-2xl bg-slate-900 border border-white/[0.06] overflow-hidden relative"
-                        >
-                            <div className="absolute inset-0 animate-shimmer" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )
+  const fetchPage = async (pageNum) => {
+    if (activeTab === 'photos') {
+      const response = await fetchPhotos(query, pageNum, PER_PAGE)
+      return response.results.map((item) => ({
+        id: item.id,
+        type: 'photo',
+        title: item.alt_description,
+        thumbnail: item.urls.small,
+        src: item.urls.full,
+        url: item.links.html,
+      }))
     }
 
-    // 2. Error Alert State
-    if (error) {
-        return (
-            <div className="max-w-md mx-auto px-4 py-16 text-center">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-4 shadow-lg shadow-red-500/5">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Unable to Load Media</h3>
-                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-                    {error}. Please check your connection or try a different search.
-                </p>
-            </div>
-        )
+    if (activeTab === 'gifs') {
+        const response = await fetchGifs(query, pageNum, PER_PAGE)
+        return response.data.map((item) => ({
+        id: item.id,
+        type: 'gif',
+        title: item.title || 'Untitled GIF',
+        thumbnail: item.images.fixed_width.url,
+        src: item.images.original.url,
+        url: item.url,
+        }))
     }
 
-    // 3. Empty Search Results State
-    if (results.length === 0) {
-        return (
-            <div className="max-w-md mx-auto px-4 py-16 text-center">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-900 border border-white/10 text-slate-400 flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No {activeTab} Found</h3>
-                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-                    We couldn't find any {activeTab} matching "{query}". Try checking your spelling or search for broader keywords.
-                </p>
-            </div>
-        )
+    const response = await fetchVideos(query, pageNum, PER_PAGE)
+    return response.videos.map((item) => ({
+      id: item.id,
+      type: 'video',
+      title: item.user.name || 'Video',
+      thumbnail: item.image,
+      src: item.video_files[0].link,
+      url: item.url,
+    }))
+  }
+
+  // first page — runs whenever query or tab changes
+  useEffect(() => {
+    if (!query) return
+
+    const getData = async () => {
+      try {
+        dispatch(setLoading())
+        const data = await fetchPage(1)
+        dispatch(setResults({ data, hasMore: data.length === PER_PAGE }))
+      } catch (err) {
+        dispatch(setError(err.message))
+      }
     }
 
-    // 4. Populated Grid
-    return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-16">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                {results.map((item) => (
-                    <ResultCard key={item.id} item={item} />
-                ))}
-            </div>
-        </div>
+    getData()
+  }, [query, activeTab])
+
+  // subsequent pages
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore || !query) return
+    try {
+      dispatch(setLoadingMore())
+      const nextPage = page + 1
+      const data = await fetchPage(nextPage)
+      dispatch(appendResults({ data, hasMore: data.length === PER_PAGE }))
+      dispatch(incrementPage())
+    } catch (err) {
+      dispatch(setError(err.message))
+    }
+  }, [loading, loadingMore, hasMore, page, query, activeTab])
+
+  // sentinel: fires loadMore when scrolled near the bottom
+  useEffect(() => {
+    if (!sentinelRef.current) return
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '600px' } // start fetching well before it's on screen
     )
+
+    observerRef.current.observe(sentinelRef.current)
+    return () => observerRef.current?.disconnect()
+  }, [loadMore])
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className={GRID_CLASSES}>
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="aspect-[4/3] w-full rounded-2xl bg-slate-900 border border-white/[0.06] overflow-hidden relative"
+            >
+              <div className="absolute inset-0 animate-shimmer" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error)
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col items-center text-center">
+        <AlertTriangle className="w-9 h-9 text-(--danger) mb-4" strokeWidth={1.5} />
+        <h3 className="text-lg font-medium text-(--text) mb-1.5">Something went wrong</h3>
+        <p className="text-sm text-(--text-faint) max-w-sm">{error}</p>
+      </div>
+    )
+
+  if (results.length === 0)
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col items-center text-center">
+        <SearchX className="w-9 h-9 text-(--text-faint) mb-4" strokeWidth={1.5} />
+        <h3 className="text-lg font-medium text-(--text) mb-1.5">No {activeTab} found</h3>
+      </div>
+    )
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <div className={GRID_CLASSES}>
+        {results.map((item, idx) => (
+          <ResultCard key={item.id ?? idx} item={item} />
+        ))}
+      </div>
+
+      {/* invisible trigger element */}
+      <div ref={sentinelRef} className="h-1" />
+
+      {loadingMore && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="w-5 h-5 animate-spin text-(--accent)" />
+        </div>
+      )}
+
+      {!hasMore && results.length > 0 && (
+        <p className="text-center text-xs text-(--text-faint) py-8">
+          You've reached the end
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default ResultGrid

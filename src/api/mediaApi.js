@@ -2,6 +2,7 @@ import axios from "axios";
 
 const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY
 const PEXELS_KEY = import.meta.env.VITE_PEXELS_KEY
+const GIPHY_KEY = import.meta.env.VITE_GIPHY_KEY
 
 
 export async function fetchPhotos(query,page=1,per_page=20) {
@@ -15,12 +16,26 @@ export async function fetchPhotos(query,page=1,per_page=20) {
 }
 
 
-export async function fetchVideos(query,per_page=15) {
+export async function fetchVideos(query, page=1, per_page=20) {
     const res = await axios.get('https://api.pexels.com/v1/videos/search', {
-        params: {query,per_page},
+        params: {query, page, per_page},
         headers: {Authorization:PEXELS_KEY}
     })
 
     return res.data
     
+}
+
+export async function fetchGifs(query, page=1, per_page=20) {
+    const offset = (page - 1) * per_page
+    const res = await axios.get('https://api.giphy.com/v1/gifs/search', {
+        params: {
+            api_key: GIPHY_KEY,
+            q: query,
+            limit: per_page,
+            offset,
+            rating: 'g'
+        }
+    })
+    return res.data
 }

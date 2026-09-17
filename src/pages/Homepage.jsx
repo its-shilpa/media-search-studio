@@ -75,11 +75,11 @@ const Homepage = () => {
                         <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-3">
                             Discover High-Resolution <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-indigo-400 via-violet-300 to-purple-400 bg-clip-text text-transparent">
-                                Photos & 4K Videos
+                                Photos, Videos & GIFs
                             </span>
                         </h1>
                         <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-                            Search millions of royalty-free creative assets from Unsplash and Pexels. Save your favorites directly to your collection.
+                            Search millions of creative assets from Unsplash, Pexels, and Giphy. Save your favorites directly to your collection.
                         </p>
                     </div>
 

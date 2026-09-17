@@ -1,9 +1,26 @@
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { removeCollection, removeToast } from '../redux/features/collectionSlice'
 
 const CollectionCard = ({ item }) => {
     const dispatch = useDispatch()
+    const videoRef = useRef(null)
+    const [isHovered, setIsHovered] = useState(false)
+
+    const handleMouseEnter = () => {
+        setIsHovered(true)
+        if (item.type === 'video' && videoRef.current) {
+            videoRef.current.play().catch(() => {})
+        }
+    }
+
+    const handleMouseLeave = () => {
+        setIsHovered(false)
+        if (item.type === 'video' && videoRef.current) {
+            videoRef.current.pause()
+            videoRef.current.currentTime = 0
+        }
+    }
 
     const removeFromCollection = (e) => {
         e.preventDefault()
@@ -12,10 +29,14 @@ const CollectionCard = ({ item }) => {
         dispatch(removeToast())
     }
 
-    const displayTitle = item.title || (item.type === 'video' ? 'Untitled Video' : 'Untitled Photo')
+    const displayTitle = item.title || (item.type === 'video' ? 'Untitled Video' : item.type === 'gif' ? 'Untitled GIF' : 'Untitled Photo')
 
     return (
-        <div className="group relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/[0.08] hover:border-white/20 transition-all duration-300 hover:shadow-2xl hover:shadow-black/60">
+        <div 
+            className="group relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/[0.08] hover:border-white/20 transition-all duration-300 hover:shadow-2xl hover:shadow-black/60"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
             {/* Media Anchor Link */}
             <a 
                 target="_blank" 
@@ -24,33 +45,60 @@ const CollectionCard = ({ item }) => {
                 className="block w-full h-full cursor-pointer relative"
                 title={`View on original platform: ${displayTitle}`}
             >
-                {item.type === 'photo' ? (
-                    <img 
-                        className="h-full w-full object-center object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
-                        src={item.src} 
-                        alt={displayTitle}
-                        loading="lazy"
-                    />
-                ) : null}
+                {/* Poster / Image Display */}
+                <img 
+                    className={`h-full w-full object-center object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
+                        item.type === 'video' && isHovered ? 'opacity-0' : 'opacity-100'
+                    }`} 
+                    src={item.type === 'video' ? item.thumbnail : item.src} 
+                    alt={displayTitle}
+                    loading="lazy"
+                />
 
-                {item.type === 'video' ? (
+                {/* Video Preview: Plays smoothly ONLY on hover */}
+                {item.type === 'video' && (
                     <video 
-                        className="h-full w-full object-center object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
-                        autoPlay 
+                        ref={videoRef}
+                        className={`absolute inset-0 h-full w-full object-center object-cover transition-opacity duration-300 ${
+                            isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                        }`} 
                         loop 
                         muted 
                         playsInline
+                        preload="none"
                         src={item.src} 
                     />
-                ) : null}
+                )}
 
-                {/* Media Type Badge for Videos */}
+                {/* Media Type Badges */}
                 {item.type === 'video' && (
                     <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-semibold tracking-wider text-white/90 border border-white/10 flex items-center gap-1.5 shadow-sm">
                         <svg className="w-3 h-3 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="5 3 19 12 5 21 5 3"/>
+                            <polygon points="5 3 19 12 5 21 5"/>
                         </svg>
                         <span>VIDEO</span>
+                    </div>
+                )}
+
+                {item.type === 'gif' && (
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-semibold tracking-wider text-pink-300 border border-pink-500/20 flex items-center gap-1.5 shadow-sm">
+                        <svg className="w-3 h-3 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                        <span>GIF</span>
+                    </div>
+                )}
+
+                {item.type === 'photo' && (
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-semibold tracking-wider text-sky-300 border border-sky-500/20 flex items-center gap-1.5 shadow-sm">
+                        <svg className="w-3 h-3 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span>PHOTO</span>
                     </div>
                 )}
 

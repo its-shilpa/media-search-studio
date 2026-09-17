@@ -11,94 +11,161 @@ import ResultCard from './ResultCard'
 const PER_PAGE = 20
 const GRID_CLASSES = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
 
+const mapPhotos = (results = []) =>
+  results.map((item) => ({
+    id: item.id,
+    type: 'photo',
+    title: item.alt_description || item.description || 'Photo',
+    thumbnail: item.urls?.small || item.urls?.thumb,
+    src: item.urls?.regular || item.urls?.small,
+    url: item.links?.html,
+  }))
+
+const mapGifs = (data = []) =>
+  data.map((item) => ({
+    id: item.id,
+    type: 'gif',
+    title: item.title || 'Untitled GIF',
+    thumbnail: item.images?.fixed_width_still?.url || item.images?.fixed_width?.url,
+    src: item.images?.fixed_width?.url || item.images?.downsized_medium?.url || item.images?.original?.url,
+    url: item.url,
+  }))
+
+const mapVideos = (videos = []) =>
+  videos.map((item) => {
+    const files = item.video_files || []
+    const previewFile =
+      files.find((f) => f.width === 720 || f.width === 540) ||
+      files.find((f) => f.quality === 'sd') ||
+      files.find((f) => f.width && f.width <= 1080) ||
+      files[0]
+
+    return {
+      id: item.id,
+      type: 'video',
+      title: item.user?.name ? `Video by ${item.user.name}` : 'Video',
+      thumbnail: item.image || item.video_pictures?.[0]?.picture,
+      src: previewFile?.link || '',
+      url: item.url,
+    }
+  })
+
 const ResultGrid = () => {
   const dispatch = useDispatch()
   const { query, activeTab, results, loading, loadingMore, error, page, hasMore } =
     useSelector((store) => store.search)
 
   const sentinelRef = useRef(null)
-  const observerRef = useRef(null)
+  const isFetchingRef = useRef(false)
 
   const fetchPage = async (pageNum) => {
+    if (activeTab === 'all') {
+      const [photosRes, videosRes, gifsRes] = await Promise.allSettled([
+        fetchPhotos(query, pageNum, 8),
+        fetchVideos(query, pageNum, 6),
+        fetchGifs(query, pageNum, 6),
+      ])
+
+      const photos = photosRes.status === 'fulfilled' ? mapPhotos(photosRes.value.results || []) : []
+      const videos = videosRes.status === 'fulfilled' ? mapVideos(videosRes.value.videos || []) : []
+      const gifs = gifsRes.status === 'fulfilled' ? mapGifs(gifsRes.value.data || []) : []
+
+      if (photosRes.status === 'rejected' && videosRes.status === 'rejected' && gifsRes.status === 'rejected') {
+        throw new Error(
+          photosRes.reason?.message || videosRes.reason?.message || gifsRes.reason?.message || 'Failed to fetch media'
+        )
+      }
+
+      // Round-robin mixture to interleave photos, videos, and gifs evenly
+      const mixed = []
+      const maxLen = Math.max(photos.length, videos.length, gifs.length)
+      for (let i = 0; i < maxLen; i++) {
+        if (photos[i]) mixed.push(photos[i])
+        if (videos[i]) mixed.push(videos[i])
+        if (gifs[i]) mixed.push(gifs[i])
+      }
+      return mixed
+    }
+
     if (activeTab === 'photos') {
       const response = await fetchPhotos(query, pageNum, PER_PAGE)
-      return response.results.map((item) => ({
-        id: item.id,
-        type: 'photo',
-        title: item.alt_description,
-        thumbnail: item.urls.small,
-        src: item.urls.full,
-        url: item.links.html,
-      }))
+      return mapPhotos(response.results || [])
     }
 
     if (activeTab === 'gifs') {
-        const response = await fetchGifs(query, pageNum, PER_PAGE)
-        return response.data.map((item) => ({
-        id: item.id,
-        type: 'gif',
-        title: item.title || 'Untitled GIF',
-        thumbnail: item.images.fixed_width.url,
-        src: item.images.original.url,
-        url: item.url,
-        }))
+      const response = await fetchGifs(query, pageNum, PER_PAGE)
+      return mapGifs(response.data || [])
     }
 
     const response = await fetchVideos(query, pageNum, PER_PAGE)
-    return response.videos.map((item) => ({
-      id: item.id,
-      type: 'video',
-      title: item.user.name || 'Video',
-      thumbnail: item.image,
-      src: item.video_files[0].link,
-      url: item.url,
-    }))
+    return mapVideos(response.videos || [])
   }
 
   // first page — runs whenever query or tab changes
   useEffect(() => {
     if (!query) return
+    let isCurrent = true
 
     const getData = async () => {
       try {
+        isFetchingRef.current = true
         dispatch(setLoading())
         const data = await fetchPage(1)
-        dispatch(setResults({ data, hasMore: data.length === PER_PAGE }))
+        if (!isCurrent) return
+        const minExpected = activeTab === 'all' ? 4 : Math.min(10, PER_PAGE)
+        dispatch(setResults({ data, hasMore: data.length >= minExpected }))
       } catch (err) {
+        if (!isCurrent) return
         dispatch(setError(err.message))
+      } finally {
+        if (isCurrent) {
+          isFetchingRef.current = false
+        }
       }
     }
 
     getData()
+
+    return () => {
+      isCurrent = false
+      isFetchingRef.current = false
+    }
   }, [query, activeTab])
 
   // subsequent pages
   const loadMore = useCallback(async () => {
-    if (loading || loadingMore || !hasMore || !query) return
+    if (isFetchingRef.current || loading || loadingMore || !hasMore || !query) return
+    isFetchingRef.current = true
     try {
       dispatch(setLoadingMore())
       const nextPage = page + 1
       const data = await fetchPage(nextPage)
-      dispatch(appendResults({ data, hasMore: data.length === PER_PAGE }))
+      const minExpected = activeTab === 'all' ? 4 : Math.min(10, PER_PAGE)
+      dispatch(appendResults({ data, hasMore: data.length >= minExpected }))
       dispatch(incrementPage())
     } catch (err) {
       dispatch(setError(err.message))
+    } finally {
+      isFetchingRef.current = false
     }
   }, [loading, loadingMore, hasMore, page, query, activeTab])
 
   // sentinel: fires loadMore when scrolled near the bottom
   useEffect(() => {
-    if (!sentinelRef.current) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
 
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadMore()
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
       },
-      { rootMargin: '600px' } // start fetching well before it's on screen
+      { rootMargin: '300px' }
     )
 
-    observerRef.current.observe(sentinelRef.current)
-    return () => observerRef.current?.disconnect()
+    observer.observe(sentinel)
+    return () => observer.disconnect()
   }, [loadMore])
 
   if (loading) {
@@ -121,17 +188,22 @@ const ResultGrid = () => {
   if (error)
     return (
       <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col items-center text-center">
-        <AlertTriangle className="w-9 h-9 text-(--danger) mb-4" strokeWidth={1.5} />
-        <h3 className="text-lg font-medium text-(--text) mb-1.5">Something went wrong</h3>
-        <p className="text-sm text-(--text-faint) max-w-sm">{error}</p>
+        <AlertTriangle className="w-9 h-9 text-rose-500 mb-4" strokeWidth={1.5} />
+        <h3 className="text-lg font-medium text-slate-200 mb-1.5">Something went wrong</h3>
+        <p className="text-sm text-slate-400 max-w-sm">{error}</p>
       </div>
     )
 
   if (results.length === 0)
     return (
       <div className="max-w-6xl mx-auto px-6 py-20 flex flex-col items-center text-center">
-        <SearchX className="w-9 h-9 text-(--text-faint) mb-4" strokeWidth={1.5} />
-        <h3 className="text-lg font-medium text-(--text) mb-1.5">No {activeTab} found</h3>
+        <SearchX className="w-9 h-9 text-slate-500 mb-4" strokeWidth={1.5} />
+        <h3 className="text-lg font-medium text-slate-200 mb-1.5">
+          No {activeTab === 'all' ? 'media' : activeTab} found
+        </h3>
+        <p className="text-sm text-slate-400 max-w-sm">
+          Try searching for different keywords or explore suggested topics.
+        </p>
       </div>
     )
 
@@ -139,7 +211,7 @@ const ResultGrid = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
       <div className={GRID_CLASSES}>
         {results.map((item, idx) => (
-          <ResultCard key={item.id ?? idx} item={item} />
+          <ResultCard key={`${item.type}-${item.id}-${idx}`} item={item} />
         ))}
       </div>
 
@@ -148,12 +220,12 @@ const ResultGrid = () => {
 
       {loadingMore && (
         <div className="flex justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-(--accent)" />
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
         </div>
       )}
 
       {!hasMore && results.length > 0 && (
-        <p className="text-center text-xs text-(--text-faint) py-8">
+        <p className="text-center text-xs text-slate-400 py-8">
           You've reached the end
         </p>
       )}

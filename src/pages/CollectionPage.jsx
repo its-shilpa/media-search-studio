@@ -31,7 +31,7 @@ const CollectionPage = () => {
                     Your collection is empty
                 </h2>
                 <p className="text-sm sm:text-base text-slate-400 max-w-sm mb-8 leading-relaxed">
-                    Save your favorite high-resolution photos and 4K videos while exploring to build your personal library.
+                    Save your favorite photos, videos, and GIFs while exploring to build your personal library.
                 </p>
                 <Link
                     to="/"

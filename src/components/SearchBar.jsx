@@ -52,7 +52,7 @@ const SearchBar = () => {
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         type="text"
-                        placeholder="Search high-res photos & videos..."
+                        placeholder="Search photos, videos & GIFs..."
                         className="w-full bg-transparent text-white placeholder:text-slate-400 pl-3 pr-28 sm:pr-32 py-3.5 sm:py-4 text-sm sm:text-base outline-none font-normal"
                         required
                     />

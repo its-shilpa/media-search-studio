@@ -1,69 +1,109 @@
-import React, { useState } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { setQuery } from '../redux/features/searchSlice'
 
+const SUGGESTIONS = ['Nature', 'Architecture', 'Minimal', 'Ocean', 'Wildlife', 'Cyberpunk', 'Space']
+
 const SearchBar = () => {
-
-    const [text, setText] = useState('')
-
+    const currentQuery = useSelector((state) => state.search.query)
+    const [text, setText] = useState(currentQuery || '')
     const dispatch = useDispatch()
+
+    useEffect(() => {
+        if (currentQuery && currentQuery !== text) {
+            setText(currentQuery)
+        }
+    }, [currentQuery])
 
     const submitHandler = (e) => {
         e.preventDefault()
-        
-        dispatch(setQuery(text))
-        
+        const trimmed = text.trim()
+        if (trimmed) {
+            dispatch(setQuery(trimmed))
+        }
+    }
+
+    const handleSuggestionClick = (tag) => {
+        setText(tag)
+        dispatch(setQuery(tag))
+    }
+
+    const handleClear = () => {
         setText('')
     }
 
-  return (
-    <div className="bg-(--c2) py-10">
-    <form 
-        onSubmit={submitHandler}
-        className="max-w-5xl mx-auto flex gap-3 px-6"
-    >
+    return (
+        <div className="relative pt-8 pb-6 px-4 sm:px-6 lg:px-8 border-b border-white/[0.06] bg-gradient-to-b from-indigo-950/25 via-slate-900/10 to-transparent">
+            <div className="max-w-3xl mx-auto flex flex-col items-center">
+                <form 
+                    onSubmit={submitHandler}
+                    className="w-full relative flex items-center bg-slate-900/90 border border-white/10 rounded-2xl shadow-xl shadow-black/40 focus-within:border-indigo-500/70 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all duration-200"
+                >
+                    {/* Search Lens Icon */}
+                    <div className="pl-4 text-slate-400 flex items-center pointer-events-none">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
 
-        <input
-            value={text}
-            onChange={(e)=>setText(e.target.value)}
-            type="text"
-            placeholder="Search anything..."
-            className="
-            flex-1
-            bg-white/10
-            border
-            border-white/30
-            text-white
-            placeholder:text-white/50
-            px-5
-            py-3
-            rounded-xl
-            text-lg
-            outline-none
-            focus:border-(--c4)
-            transition
-            "
-            required
-        />
+                    {/* Input Field */}
+                    <input
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        type="text"
+                        placeholder="Search high-res photos & videos..."
+                        className="w-full bg-transparent text-white placeholder:text-slate-400 pl-3 pr-28 sm:pr-32 py-3.5 sm:py-4 text-sm sm:text-base outline-none font-normal"
+                        required
+                    />
 
-        <button
-            className="
-            px-8
-            rounded-xl
-            bg-(--c4)
-            text-(--c1)
-            font-semibold
-            hover:scale-105
-            active:scale-95
-            transition
-            "
-        >
-            Search
-        </button>
+                    {/* Clear Button */}
+                    {text && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            aria-label="Clear search"
+                            className="absolute right-24 sm:right-28 p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer rounded-full hover:bg-white/10"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    )}
 
-    </form>
-</div>
-  )
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        className="absolute right-1.5 top-1.5 bottom-1.5 px-4 sm:px-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-indigo-600/30 active:scale-[0.97] transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    >
+                        <span>Search</span>
+                    </button>
+                </form>
+
+                {/* Quick Topic Suggestions */}
+                <div className="w-full mt-3.5 flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <span className="text-xs font-medium text-slate-400 whitespace-nowrap flex-shrink-0">
+                        Trending:
+                    </span>
+                    {SUGGESTIONS.map((tag) => (
+                        <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleSuggestionClick(tag)}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                                currentQuery?.toLowerCase() === tag.toLowerCase()
+                                    ? "bg-indigo-600/30 text-indigo-300 border-indigo-500/50 font-medium"
+                                    : "bg-white/[0.04] text-slate-300 border-white/[0.08] hover:bg-white/[0.08] hover:text-white hover:border-white/20"
+                            }`}
+                        >
+                            {tag}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
 }
 
 export default SearchBar

@@ -29,8 +29,8 @@ const collectionSlice = createSlice({
             localStorage.removeItem('collection')
         },
         addedToast:()=>{
-            toast.success('Added to Collection :)', {
-            position: "top-right",
+            toast.success('Saved to collection', {
+            position: "bottom-right",
             autoClose: 2000,
             hideProgressBar: false,
             closeOnClick: false,
@@ -42,8 +42,8 @@ const collectionSlice = createSlice({
             });
         },
         removeToast:()=>{
-            toast.info('Removed from Collection', {
-            position: "top-right",
+            toast.info('Removed from collection', {
+            position: "bottom-right",
             autoClose: 2000,
             hideProgressBar: false,
             closeOnClick: false,

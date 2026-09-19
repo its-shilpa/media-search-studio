@@ -125,6 +125,7 @@ const SearchBar = () => {
                         <span>Search</span>
                     </button>
                 </form>
+                
 
                 {/* Suggestions Dropdown */}
                 {isFocused && filteredSuggestions.length > 0 && (

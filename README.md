@@ -6,7 +6,7 @@
 
 ## ✨ Overview
 
-MediaSearch is a modern, responsive media discovery application built with React and Redux.
+MediaSearch is a modern, responsive media discovery application built with React and Redux technology.
 
 The application brings photos, videos, and GIFs from multiple external media APIs into a single, unified search experience. Users can search for visual content, browse results with infinite scrolling, filter results by media type and supported attributes, download media, and save their favorite content to a personal collection.
 

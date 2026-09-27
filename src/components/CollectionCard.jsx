@@ -72,7 +72,6 @@ const CollectionCard = ({ item }) => {
 
     const displayTitle = item.title || (item.type === 'video' ? 'Untitled Video' : item.type === 'gif' ? 'Untitled GIF' : 'Untitled Photo')
 
-    
     return (
         <div 
             className="group relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-900 border border-white/[0.08] hover:border-white/20 transition-all duration-300 hover:shadow-2xl hover:shadow-black/60"
